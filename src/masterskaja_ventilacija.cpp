@@ -126,6 +126,12 @@ void loop()
   }
   if (dht_t.isReady())
   {
+      if (graf == 105)
+        {
+          digitalWrite(D7, LOW);
+          state = 0;
+          taimer = 0;
+        }
     graf++;
 
     if (dht22.available())
@@ -144,9 +150,9 @@ void loop()
         }
       }
 
-      if (temper_ulica < 23)
+      if (temper_ulica < 21)
       {
-        if (temp_raw > 23.5)
+        if (temp_raw > 23)
         {
           digitalWrite(D7, HIGH);
           state = 1;
@@ -161,15 +167,10 @@ void loop()
           state = 1;
           taimer = 1;
         }
-        if (graf == 105)
-        {
-          digitalWrite(D7, LOW);
-          state = 0;
-          taimer = 0;
-        }
+      
       }
 
-      if (temp_raw < 23 && taimer == 0)
+      if ((temp_raw < 22.5 || temper_ulica > 21)  && taimer == 0 )
       {
         digitalWrite(D7, LOW);
         state = 0;
