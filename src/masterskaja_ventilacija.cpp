@@ -124,15 +124,16 @@ void loop()
       }
     }
   }
+
   if (dht_t.isReady())
   {
-      if (graf == 105 && taimer == 1)
-        {
-          digitalWrite(D7, LOW);
-          state = 0;
-          taimer = 0;
-        }
-    graf++;
+    if (graf == 70 && taimer == 1)
+    {
+      digitalWrite(D7, LOW);
+      state = 0;
+      taimer = 0;
+    }
+    
 
     if (dht22.available())
     {
@@ -141,44 +142,39 @@ void loop()
       temp_raw = (temp_raw / 10) - 2.5;
       hum_raw = hum_raw / 10;
 
-      if (graf == 300 || graf == 600)
+      if (graf == 225 || graf == 450)
       {
         publish_send("masterskaja_Temper_graf", temp_raw);
-        if (graf == 600)
+        if (graf == 450)
         {
           graf = 0;
         }
       }
 
-      if (temper_ulica < 21)
+      if (temp_raw > 23 && temper_ulica < 21)
       {
-        if (temp_raw > 23)
-        {
-          digitalWrite(D7, HIGH);
-          state = 1;
-        }
-        taimer = 0;
-      }
-      else
-      {
-        if (graf == 5)
-        {
-          digitalWrite(D7, HIGH);
-          state = 1;
-          taimer = 1;
-        }
-      
+        digitalWrite(D7, HIGH);
+        state = 1;
       }
 
-      if ((temp_raw < 22.5 || temper_ulica > 21)  && taimer == 0 )
+      if (graf == 0)
+      {
+        digitalWrite(D7, HIGH);
+        state = 1;
+        taimer = 1;
+      }
+
+      if ((temp_raw < 22.5 || temper_ulica > 21) && taimer == 0)
       {
         digitalWrite(D7, LOW);
         state = 0;
       }
-
+      float timer_min = graf;
       publish_send("masterskaja_Hum", hum_raw);
+      publish_send("masterskaja_timer", timer_min);
       publish_send("masterskaja_Temper", temp_raw);
     }
+    graf++;
   }
 }
 
