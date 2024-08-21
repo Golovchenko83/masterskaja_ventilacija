@@ -126,7 +126,7 @@ void loop()
   }
   if (dht_t.isReady())
   {
-      if (graf == 105)
+      if (graf == 105 && taimer == 1)
         {
           digitalWrite(D7, LOW);
           state = 0;
@@ -190,11 +190,11 @@ void setup()
   client.setCallback(callback);
   OTA_Wifi.setInterval(10); // настроить интервал
   OTA_Wifi.setMode(AUTO);   // Авто режим
-  Status.setInterval(3000); // настроить интервал
+  Status.setInterval(4000); // настроить интервал
   Status.setMode(AUTO);     // Авто режим
   ESP.wdtDisable();         // Активация watchdog
   pinMode(D7, OUTPUT);
-  dht_t.setInterval(3000); // настроить интервал
+  dht_t.setInterval(4000); // настроить интервал
   dht_t.setMode(AUTO);     // Авто режим
   dht22.begin();
 }
