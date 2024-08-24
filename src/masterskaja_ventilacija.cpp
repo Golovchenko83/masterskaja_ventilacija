@@ -24,7 +24,6 @@ byte state = 0, taimer = 0;
 float hum_raw, temp_raw;
 int data;
 int graf = 0;
-char send[5];
 float temper_ulica = 26;
 
 void callback(char *topic, byte *payload, unsigned int length) // Функция Приема сообщений
@@ -33,12 +32,10 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
   for (unsigned int i = 0; i < length; i++)
   {
     s = s + ((char)payload[i]); // переводим данные в String
-    send[i] = payload[i];
   }
 
   if ((String(topic)) == "temp_zapad")
   {
-    client.publish("master_temp", send, 1);
     temper_ulica = atof(s.c_str()); // переводим данные в float
   }
 
@@ -138,20 +135,18 @@ void loop()
     if (dht22.available())
     {
       temp_raw = dht22.readTemperature();
-      hum_raw = dht22.readHumidity();
-      temp_raw = (temp_raw / 10) - 2.5;
-      hum_raw = hum_raw / 10;
+      temp_raw = (temp_raw / 10);
 
       if (graf == 225 || graf == 450)
       {
         publish_send("masterskaja_Temper_graf", temp_raw);
-        if (graf == 450)
+        if (graf >= 450)
         {
           graf = 0;
         }
       }
 
-      if (temp_raw > 23 && temper_ulica < 21)
+      if (temp_raw > 20 && temper_ulica < 19)
       {
         digitalWrite(D7, HIGH);
         state = 1;
@@ -164,13 +159,12 @@ void loop()
         taimer = 1;
       }
 
-      if ((temp_raw < 22.5 || temper_ulica > 21) && taimer == 0)
+      if ((temp_raw < 19.5 || temper_ulica > 19) && taimer == 0)
       {
         digitalWrite(D7, LOW);
         state = 0;
       }
       float timer_min = graf;
-      publish_send("masterskaja_Hum", hum_raw);
       publish_send("masterskaja_timer", timer_min);
       publish_send("masterskaja_Temper", temp_raw);
     }
