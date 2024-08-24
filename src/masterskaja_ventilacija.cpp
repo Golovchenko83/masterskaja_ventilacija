@@ -146,7 +146,7 @@ void loop()
         }
       }
 
-      if (temp_raw > 20 && temper_ulica < 19)
+      if (temp_raw >= 20 && temper_ulica < 19)
       {
         digitalWrite(D7, HIGH);
         state = 1;
@@ -159,7 +159,7 @@ void loop()
         taimer = 1;
       }
 
-      if ((temp_raw < 19.5 || temper_ulica > 19) && taimer == 0)
+      if ((temp_raw <= 19.5 || temper_ulica > 19) && taimer == 0)
       {
         digitalWrite(D7, LOW);
         state = 0;
