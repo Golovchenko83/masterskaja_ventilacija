@@ -124,7 +124,7 @@ void loop()
 
   if (dht_t.isReady())
   {
-    if (graf == 70 && taimer == 1)
+    if (graf == 5 && taimer == 1)
     {
       digitalWrite(D7, LOW);
       state = 0;
@@ -137,10 +137,10 @@ void loop()
       temp_raw = dht22.readTemperature();
       temp_raw = (temp_raw / 10);
 
-      if (graf == 225 || graf == 450)
+      if (graf == 15 || graf == 30)
       {
         publish_send("masterskaja_Temper_graf", temp_raw);
-        if (graf >= 450)
+        if (graf >= 30)
         {
           graf = 0;
         }
@@ -184,7 +184,7 @@ void setup()
   Status.setMode(AUTO);     // Авто режим
   ESP.wdtDisable();         // Активация watchdog
   pinMode(D7, OUTPUT);
-  dht_t.setInterval(4000); // настроить интервал
+  dht_t.setInterval(60000); // настроить интервал
   dht_t.setMode(AUTO);     // Авто режим
   dht22.begin();
 }
