@@ -12,7 +12,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 GTimer_ms dht_t;
 GTimer_ms OTA_Wifi;
-GTimer_ms Status;
+GTimer_ms set_manual;
 const char *ssid = "Beeline";                        // Имя точки доступа WIFI
 const char *name_client = "masterskaja-ventilacija"; // Имя клиента и сетевого порта для ОТА
 const char *password = "sl908908908908sl";           // пароль точки доступа WIFI
@@ -20,7 +20,7 @@ const char *mqtt_server = "192.168.1.221";
 const char *mqtt_reset = "masterskaja-ventilacija_reset"; // Имя топика для перезагрузки
 String s;
 int flag_pub = 1;
-byte state = 0, taimer = 0;
+byte state = 0, state_mem = 10, manual = 0, taimer = 0;
 float hum_raw, temp_raw;
 int data;
 int graf = 0;
@@ -37,6 +37,14 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
   if ((String(topic)) == "temp_zapad")
   {
     temper_ulica = atof(s.c_str()); // переводим данные в float
+  }
+
+  if ((String(topic)) == "masterskaja_ven_manual")
+  {
+    state = atof(s.c_str()); // переводим данные в float
+    set_manual.reset();
+    set_manual.start();
+    manual = 1;
   }
 
   int data = atoi(s.c_str()); // переводим данные в int
@@ -81,17 +89,28 @@ void publish_send(const char *top, float &ex_data) // Отправка Пока�
 
 void loop()
 {
-  if (Status.isReady())
+
+  if (state != state_mem)
   {
+    state_mem = state;
+
     if (state)
     {
       client.publish(name_client, "1");
+      digitalWrite(D7, HIGH);
     }
     else
     {
       client.publish(name_client, "0");
+      digitalWrite(D7, LOW);
     }
   }
+
+  if (set_manual.isReady())
+  {
+    manual = 0;
+  }
+
   ESP.wdtFeed();
 
   if (OTA_Wifi.isReady()) // Поддержание "WiFi" и "OTA"  и Пинок :) "watchdog" и подписка на "Топики Mqtt"
@@ -108,6 +127,7 @@ void loop()
           client.subscribe(mqtt_reset);  // подписались на топик "ESP8_test_reset"
           client.subscribe(name_client); // подписались на топик
           client.subscribe("temp_zapad");
+          client.subscribe("masterskaja_ven_manual");
           // Отправка IP в mqtt
           char IP_ch[20];
           String IP = (WiFi.localIP().toString().c_str());
@@ -124,13 +144,11 @@ void loop()
 
   if (dht_t.isReady())
   {
-    if (graf == 5 && taimer == 1)
+    if (graf == 5 && taimer == 1 && manual == 0)
     {
-      digitalWrite(D7, LOW);
       state = 0;
       taimer = 0;
     }
-    
 
     if (dht22.available())
     {
@@ -146,22 +164,19 @@ void loop()
         }
       }
 
-      if (temp_raw >= 20 && temper_ulica < 19)
+      if (temp_raw >= 20 && temper_ulica < 19 && manual == 0)
       {
-        digitalWrite(D7, HIGH);
         state = 1;
       }
 
-      if (graf == 0)
+      if (graf == 0 && manual == 0)
       {
-        digitalWrite(D7, HIGH);
         state = 1;
         taimer = 1;
       }
 
-      if ((temp_raw <= 19.5 || temper_ulica > 19) && taimer == 0)
+      if ((temp_raw <= 19.5 || temper_ulica > 19) && taimer == 0 && manual == 0)
       {
-        digitalWrite(D7, LOW);
         state = 0;
       }
       float timer_min = graf;
@@ -178,13 +193,13 @@ void setup()
   Serial.begin(9600);
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-  OTA_Wifi.setInterval(10); // настроить интервал
-  OTA_Wifi.setMode(AUTO);   // Авто режим
-  Status.setInterval(4000); // настроить интервал
-  Status.setMode(AUTO);     // Авто режим
-  ESP.wdtDisable();         // Активация watchdog
+  OTA_Wifi.setInterval(10);        // настроить интервал
+  OTA_Wifi.setMode(AUTO);          // Авто режим
+  set_manual.setInterval(3600000); // настроить интервал
+  set_manual.setMode(MANUAL);      // Авто режим
+  ESP.wdtDisable();                // Активация watchdog
   pinMode(D7, OUTPUT);
   dht_t.setInterval(60000); // настроить интервал
-  dht_t.setMode(AUTO);     // Авто режим
+  dht_t.setMode(AUTO);      // Авто режим
   dht22.begin();
 }
