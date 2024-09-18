@@ -19,11 +19,12 @@ const char *password = "sl908908908908sl";           // пароль точки 
 const char *mqtt_server = "192.168.1.221";
 const char *mqtt_reset = "masterskaja-ventilacija_reset"; // Имя топика для перезагрузки
 String s;
+float temperatura_set;
 int flag_pub = 1;
 byte state = 0, state_mem = 10, manual = 0, taimer = 0;
 float hum_raw, temp_raw;
 int data;
-int graf = 0;
+int graf = 1;
 float temper_ulica = 26;
 
 void callback(char *topic, byte *payload, unsigned int length) // Функция Приема сообщений
@@ -41,10 +42,10 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
 
   if ((String(topic)) == "masterskaja_ven_manual")
   {
-    state = atof(s.c_str()); // переводим данные в float
-    set_manual.reset();
-    set_manual.start();
-    manual = 1;
+   // state = atof(s.c_str()); // переводим данные в float
+   // set_manual.reset();
+   // set_manual.start();
+  //  manual = 1;
   }
 
   int data = atoi(s.c_str()); // переводим данные в int
@@ -144,7 +145,7 @@ void loop()
 
   if (dht_t.isReady())
   {
-    if (graf == 5 && taimer == 1 && manual == 0)
+    if (graf == 20 && taimer == 1 && manual == 0)
     {
       state = 0;
       taimer = 0;
@@ -155,16 +156,16 @@ void loop()
       temp_raw = dht22.readTemperature();
       temp_raw = (temp_raw / 10);
 
-      if (graf == 15 || graf == 30)
+      if (graf == 60 || graf == 120)
       {
         publish_send("masterskaja_Temper_graf", temp_raw);
-        if (graf >= 30)
+        if (graf >= 120)
         {
           graf = 0;
         }
       }
 
-      if (temp_raw >= 20 && temper_ulica < 19 && manual == 0)
+      if (temp_raw > temperatura_set && temper_ulica < 19 && manual == 0)
       {
         state = 1;
       }
@@ -174,10 +175,12 @@ void loop()
         state = 1;
         taimer = 1;
       }
-
-      if ((temp_raw <= 19.5 || temper_ulica > 19) && taimer == 0 && manual == 0)
+      if (temp_raw < temperatura_set - 0.5 || temper_ulica > 19)
       {
-        state = 0;
+        if (taimer == 0 && manual == 0)
+        {
+          state = 0;
+        }
       }
       float timer_min = graf;
       publish_send("masterskaja_timer", timer_min);
@@ -199,7 +202,8 @@ void setup()
   set_manual.setMode(MANUAL);      // Авто режим
   ESP.wdtDisable();                // Активация watchdog
   pinMode(D7, OUTPUT);
-  dht_t.setInterval(60000); // настроить интервал
-  dht_t.setMode(AUTO);      // Авто режим
+  dht_t.setInterval(15000); // настроить интервал
+  dht_t.setMode(AUTO);     // Авто режим
   dht22.begin();
+  temperatura_set = 23; // Температура установленная
 }
