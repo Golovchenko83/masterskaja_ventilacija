@@ -41,11 +41,11 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
     time_g = atoi(s.c_str()); // переводим данные в int
     if (time_g < 21600  || time_g > 82800)
     {
-      temperatura_set = 20;
+      temperatura_set = 18;
     }
     else
     {
-      temperatura_set = 23;
+      temperatura_set = 22;
     }
   }
   else if ((String(topic)) == "temp_zapad")
