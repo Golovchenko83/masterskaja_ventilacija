@@ -19,7 +19,8 @@ const char *password = "sl908908908908sl";           // пароль точки 
 const char *mqtt_server = "192.168.1.221";
 const char *mqtt_reset = "masterskaja-ventilacija_reset"; // Имя топика для перезагрузки
 String s;
-float temperatura_set;
+float temperatura_set = 22.5;
+float temperatura;
 int flag_pub = 1;
 byte state = 0, state_mem = 10, manual = 0, taimer = 0;
 float hum_raw, temp_raw;
@@ -39,13 +40,13 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
   if ((String(topic)) == "Clock")
   {
     time_g = atoi(s.c_str()); // переводим данные в int
-    if (time_g < 21600  || time_g > 82800)
+    if (time_g < 21600 || time_g > 82800)
     {
-      temperatura_set = 18;
+      temperatura = temperatura_set - 2;
     }
     else
     {
-      temperatura_set = 22;
+      temperatura = temperatura_set;
     }
   }
   else if ((String(topic)) == "temp_zapad")
@@ -161,7 +162,7 @@ void loop()
 
     if (dht22.available())
     {
-      temp_raw = dht22.readTemperature();
+      temp_raw = dht22.readTemperature() - 1;
       temp_raw = (temp_raw / 10);
 
       if (graf == 60 || graf == 120)
@@ -173,7 +174,7 @@ void loop()
         }
       }
 
-      if (temp_raw > temperatura_set && temper_ulica < 19 && manual == 0)
+      if (temp_raw > temperatura && temper_ulica < 19 && manual == 0)
       {
         state = 1;
       }
@@ -183,7 +184,7 @@ void loop()
         state = 1;
         taimer = 1;
       }
-      if (temp_raw < temperatura_set - 0.5 || temper_ulica > 19)
+      if (temp_raw < temperatura - 0.5 || temper_ulica > 19)
       {
         if (taimer == 0 && manual == 0)
         {
@@ -214,5 +215,5 @@ void setup()
   dht_t.setInterval(15000); // настроить интервал
   dht_t.setMode(AUTO);      // Авто режим
   dht22.begin();
-  temperatura_set = 23; // Температура установленная
+  temperatura = temperatura_set; // Температура установленная
 }
