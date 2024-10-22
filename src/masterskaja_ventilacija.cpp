@@ -13,18 +13,19 @@ PubSubClient client(espClient);
 GTimer_ms dht_t;
 GTimer_ms OTA_Wifi;
 GTimer_ms set_manual;
+GTimer_ms provetrivanie;
 const char *ssid = "Beeline";                        // Имя точки доступа WIFI
 const char *name_client = "masterskaja-ventilacija"; // Имя клиента и сетевого порта для ОТА
 const char *password = "sl908908908908sl";           // пароль точки доступа WIFI
 const char *mqtt_server = "192.168.1.221";
 const char *mqtt_reset = "masterskaja-ventilacija_reset"; // Имя топика для перезагрузки
 String s;
-float temperatura_set = 22.5;
+float temperatura_set = 22.8;
 float temperatura;
 int flag_pub = 1;
 byte state = 0, state_mem = 10, manual = 0, taimer = 0;
-float hum_raw, temp_raw;
-int data;
+float hum_raw, temp_raw, temp_sr = 0;
+int data, dht_tik = 0;
 int time_g = 0;
 int graf = 1;
 float temper_ulica = 6;
@@ -42,7 +43,7 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
     time_g = atoi(s.c_str()); // переводим данные в int
     if (time_g < 21600 || time_g > 82800)
     {
-      temperatura = temperatura_set - 2;
+      temperatura = temperatura_set - 3;
     }
     else
     {
@@ -154,37 +155,44 @@ void loop()
 
   if (dht_t.isReady())
   {
-    if (graf == 20 && taimer == 1 && manual == 0)
-    {
-      state = 0;
-      taimer = 0;
-    }
 
     if (dht22.available())
     {
-      temp_raw = dht22.readTemperature() - 1;
+      dht_tik++;
+      temp_raw = dht22.readTemperature();
       temp_raw = (temp_raw / 10);
-
-      if (graf == 60 || graf == 120)
+      temp_raw=temp_raw-0.8;
+      temp_sr = temp_sr + temp_raw;
+      if (graf == 60 || graf == 120 || graf == 360)
       {
-        publish_send("masterskaja_Temper_graf", temp_raw);
-        if (graf >= 120)
+        temp_sr = temp_sr / dht_tik;
+        publish_send("masterskaja_Temper_graf", temp_sr);
+        if (graf >= 360)
         {
           graf = 0;
         }
+        temp_sr = 0;
+        dht_tik = 0;
       }
 
-      if (temp_raw > temperatura && temper_ulica < 19 && manual == 0)
-      {
-        state = 1;
-      }
-
-      if (graf == 0 && manual == 0)
+      // Проветривание по таймеру///////
+      if (graf == 0 && manual == 0 && temp_raw > temperatura - 0.5 && provetrivanie.isReady())
       {
         state = 1;
         taimer = 1;
       }
-      if (temp_raw < temperatura - 0.5 || temper_ulica > 19)
+      if (graf == 20 && taimer == 1 && manual == 0)
+      {
+        taimer = 0;
+      }
+      // Контроль температуры /////
+      if (temp_raw > temperatura && temper_ulica < 19 && manual == 0)
+      {
+        state = 1;
+        provetrivanie.start();
+      }
+
+      if (temp_raw < temperatura - 0.3 || temper_ulica > 19)
       {
         if (taimer == 0 && manual == 0)
         {
@@ -193,6 +201,7 @@ void loop()
       }
       float timer_min = graf;
     }
+
     publish_send("masterskaja_Temper", temp_raw);
     publish_send("masterskaja_Temper_ul", temper_ulica);
     publish_send("masterskaja_Temper_set", temperatura_set);
@@ -210,9 +219,12 @@ void setup()
   OTA_Wifi.setMode(AUTO);          // Авто режим
   set_manual.setInterval(3600000); // настроить интервал
   set_manual.setMode(MANUAL);      // Авто режим
-  ESP.wdtDisable();                // Активация watchdog
+  provetrivanie.setInterval(3600000);
+  provetrivanie.setMode(MANUAL);
+  provetrivanie.start();
+  ESP.wdtDisable(); // Активация watchdog
   pinMode(D7, OUTPUT);
-  dht_t.setInterval(15000); // настроить интервал
+  dht_t.setInterval(10000); // настроить интервал
   dht_t.setMode(AUTO);      // Авто режим
   dht22.begin();
   temperatura = temperatura_set; // Температура установленная
