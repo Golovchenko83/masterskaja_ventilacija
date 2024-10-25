@@ -161,7 +161,7 @@ void loop()
       dht_tik++;
       temp_raw = dht22.readTemperature();
       temp_raw = (temp_raw / 10);
-      temp_raw=temp_raw-0.8;
+    
       temp_sr = temp_sr + temp_raw;
       if (graf == 60 || graf == 120 || graf == 360)
       {
