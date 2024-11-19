@@ -23,11 +23,11 @@ String s;
 float temperatura_set = 22.8;
 float temperatura;
 int flag_pub = 1;
-byte state = 0, state_mem = 10, manual = 0, taimer = 0;
+byte state = 0, state_mem = 10, taimer = 0;
 float hum_raw, temp_raw, temp_sr = 0;
 int data, dht_tik = 0;
 int time_g = 0;
-int graf = 1;
+int graf = 1, manual = 0;
 float temper_ulica = 6;
 
 void callback(char *topic, byte *payload, unsigned int length) // Функция Приема сообщений
@@ -54,26 +54,25 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
   {
     temper_ulica = atof(s.c_str()); // переводим данные в float
   }
-  /*
-  else if ((String(topic)) == "masterskaja_ven_manual")
-  {
-    // state = atof(s.c_str()); // переводим данные в float
-    // set_manual.reset();
-    // set_manual.start();
-    //  manual = 1;
-  }
 
-  else if ((String(topic)) == name_client && data == 1)
+  if ((String(topic)) == "masterskaja_ven_manual")
   {
-    digitalWrite(D7, HIGH);
-    state = 1;
+    manual = atoi(s.c_str());
+    // manual = !manual;
+
+    if (manual == 0)
+    {
+      if (state)
+      {
+        client.publish(name_client, "1");
+      }
+      else
+      {
+        client.publish(name_client, "0");
+      }
+    }
+    state_mem = 5;
   }
-  else if ((String(topic)) == name_client && data == 0)
-  {
-    digitalWrite(D7, LOW);
-    state = 0;
-  }
-*/
 }
 
 void wi_fi_con()
@@ -100,18 +99,24 @@ void publish_send(const char *top, float &ex_data) // Отправка Пока�
 void loop()
 {
 
-  if (state != state_mem)
+  if (state != state_mem || manual == 1)
   {
-    state_mem = state;
 
-    if (state)
+    if (state && manual == 0)
     {
       client.publish(name_client, "1");
       digitalWrite(D7, HIGH);
+      state_mem = state;
     }
-    else
+    else if (state == 0 && manual == 0)
     {
       client.publish(name_client, "0");
+      digitalWrite(D7, LOW);
+      state_mem = state;
+    }
+    else if (manual == 1)
+    {
+      client.publish(name_client, "2");
       digitalWrite(D7, LOW);
     }
   }
@@ -134,8 +139,8 @@ void loop()
         ESP.wdtFeed();                   // Пинок :) "watchdog"
         if (client.connect(name_client)) // имя на сервере mqtt
         {
-          client.subscribe(mqtt_reset);  // подписались на топик "ESP8_test_reset"
-          client.subscribe(name_client); // подписались на топик
+          client.subscribe(mqtt_reset); // подписались на топик "ESP8_test_reset"
+                                        // client.subscribe(name_client); // подписались на топик
           client.subscribe("temp_zapad");
           client.subscribe("masterskaja_ven_manual");
           client.subscribe("Clock");
@@ -161,7 +166,7 @@ void loop()
       dht_tik++;
       temp_raw = dht22.readTemperature();
       temp_raw = (temp_raw / 10);
-    
+
       temp_sr = temp_sr + temp_raw;
       if (graf == 60 || graf == 120 || graf == 360)
       {
@@ -215,11 +220,11 @@ void setup()
   Serial.begin(9600);
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
-  OTA_Wifi.setInterval(10);        // настроить интервал
-  OTA_Wifi.setMode(AUTO);          // Авто режим
-  set_manual.setInterval(3600000); // настроить интервал
-  set_manual.setMode(MANUAL);      // Авто режим
-  provetrivanie.setInterval(3600000);
+  OTA_Wifi.setInterval(10);           // настроить интервал
+  OTA_Wifi.setMode(AUTO);             // Авто режим
+  set_manual.setInterval(3600000);    // настроить интервал
+  set_manual.setMode(MANUAL);         // Авто режим
+  provetrivanie.setInterval(7200000); // два часа
   provetrivanie.setMode(MANUAL);
   provetrivanie.start();
   ESP.wdtDisable(); // Активация watchdog
