@@ -23,9 +23,9 @@ String s;
 float temperatura_set = 22.8;
 float temperatura;
 int flag_pub = 1;
-byte state = 0, state_mem = 10, taimer = 0;
+byte state_mem = 10, taimer = 0;
 float hum_raw, temp_raw, temp_sr = 0;
-int data, dht_tik = 0;
+int data, dht_tik = 0, state = 0;
 int time_g = 0;
 int graf = 1, manual = 0;
 float temper_ulica = 6;
@@ -71,7 +71,14 @@ void callback(char *topic, byte *payload, unsigned int length) // Функция
         client.publish(name_client, "0");
       }
     }
+    set_manual.reset();
+    set_manual.start();
     state_mem = 5;
+  }
+
+  if ((String(topic)) == "masterskaja_ven_temper_set")
+  {
+    temperatura_set = atof(s.c_str());
   }
 }
 
@@ -99,7 +106,7 @@ void publish_send(const char *top, float &ex_data) // Отправка Пока�
 void loop()
 {
 
-  if (state != state_mem || manual == 1)
+  if (state != state_mem )
   {
 
     if (state && manual == 0)
@@ -118,6 +125,7 @@ void loop()
     {
       client.publish(name_client, "2");
       digitalWrite(D7, LOW);
+      state_mem = state;
     }
   }
 
@@ -144,6 +152,7 @@ void loop()
           client.subscribe("temp_zapad");
           client.subscribe("masterskaja_ven_manual");
           client.subscribe("Clock");
+          client.subscribe("masterskaja_ven_temper_set");
           // Отправка IP в mqtt
           char IP_ch[20];
           String IP = (WiFi.localIP().toString().c_str());
@@ -208,8 +217,8 @@ void loop()
     }
 
     publish_send("masterskaja_Temper", temp_raw);
-    publish_send("masterskaja_Temper_ul", temper_ulica);
-    publish_send("masterskaja_Temper_set", temperatura_set);
+   // publish_send("masterskaja_Temper_ul", temper_ulica);
+   // publish_send("masterskaja_Temper_set", temperatura_set);
     graf++;
   }
 }
